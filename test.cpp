@@ -1,3 +1,4 @@
+
 #include <V4l2Device.h>
 #include <V4l2Capture.h>
 #include <iostream>
@@ -5,6 +6,11 @@
 #include "opencv2/opencv.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "ArmorDetector.h"
+#include "AngleSolver.hpp"
+
+
+volatile uint8_t _task;
+#define CAMERA_NUMBER 8
 
 int main()
 {
@@ -19,6 +25,11 @@ int main()
      */
     V4L2DeviceParameters param(in_devname, V4L2_PIX_FMT_MJPEG, 800, 600, 30, 0, verbose);
     V4l2Capture *videoCapture = V4l2Capture::create(param, V4l2Access::IOTYPE_MMAP);
+    rm::AngleSolverParam angleParam;
+    angleParam.readFile(CAMERA_NUMBER);//choose camera
+    rm::AngleSolver anglesolver;
+    anglesolver.init(angleParam);
+    anglesolver.setResolution(cv::Size(800,600));
     rm::ArmorParam armorParam;
     rm::ArmorDetector armorDetector;
     armorDetector.init(armorParam);
@@ -53,10 +64,20 @@ int main()
             {
                 armorDetector.loadImg(v4l2Mat);
                 int armorFlag = armorDetector.detect();
+                
                 if(armorFlag == rm::ArmorDetector::ARMOR_LOCAL || armorFlag == rm::ArmorDetector::ARMOR_GLOBAL)
                 {
                     std::vector<cv::Point2f> armorVertex = armorDetector.getArmorVertex();
                     int armorType = armorDetector.getArmorType();
+                    anglesolver.setTarget(armorVertex, armorType);
+                    int angleFlag = anglesolver.solve();
+                    if(angleFlag != rm::AngleSolver::ANGLE_ERROR)
+                    {
+                        cv::Vec2f targetAngle = anglesolver.getAngle();
+                        std::cout<<"X err"<<targetAngle[0]<<std::endl;
+                        std::cout<<"Y err"<<targetAngle[1]<<std::endl;
+                    }
+
                     for (int i=0;i<armorVertex.size();i++)
                         cv::circle(v4l2Mat,cv::Point(armorVertex[i].x,armorVertex[i].y),10,CV_RGB(255,0,0),2);
                     //cv::drawContours(v4l2Mat,armorVertex,-1,cv::Scalar(255,0,0));

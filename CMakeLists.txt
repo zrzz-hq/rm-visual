@@ -23,9 +23,11 @@ endif()
 include_directories("libv4l2")
 include_directories("ArmorDetector")
 include_directories("General")
+
 aux_source_directory(libv4l2 SRC_FILES)
 aux_source_directory(ArmorDetector SRC_FILES)
 aux_source_directory(General SRC_FILES)
+
 add_library(v4l2cpp SHARED ${SRC_FILES})
 target_link_libraries(v4l2cpp ${OpenCV_LIBS})
 
