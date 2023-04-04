@@ -7,6 +7,7 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "ArmorDetector.h"
 #include "AngleSolver.hpp"
+#include "Serials/Serial.h"
 
 
 volatile uint8_t _task;
@@ -25,16 +26,34 @@ int main()
      */
     V4L2DeviceParameters param(in_devname, V4L2_PIX_FMT_MJPEG, 800, 600, 30, 0, verbose);
     V4l2Capture *videoCapture = V4l2Capture::create(param, V4l2Access::IOTYPE_MMAP);
+    
     rm::AngleSolverParam angleParam;
     angleParam.readFile(CAMERA_NUMBER);//choose camera
     rm::AngleSolver anglesolver;
+    
     anglesolver.init(angleParam);
     anglesolver.setResolution(cv::Size(800,600));
+    
     rm::ArmorParam armorParam;
     rm::ArmorDetector armorDetector;
     armorDetector.init(armorParam);
     armorDetector.setEnemyColor(rm::BLUE);
 
+    rm::Serial serial;
+    serial.openPort();
+    serial.setDebug(false);
+    int self_color;
+    while(serial.setup(self_color) != rm::Serial::OJBK)
+    {
+       sleep(1);
+    }
+    int enemy_color;
+    self_color= rm::BLUE ? enemy_color=rm::RED : enemy_color=rm::BLUE;
+    armorDetector.setEnemyColor(enemy_color);
+    std::cout<<"I am"<<(self_color == rm::BLUE ? "blue" : "red")<<"."<<std::endl;
+    
+    
+    
     if (videoCapture == NULL)
     {
         LOG(WARN) << "Cannot create V4L2 capture interface for device:"
@@ -76,11 +95,26 @@ int main()
                         cv::Vec2f targetAngle = anglesolver.getAngle();
                         std::cout<<"X err"<<targetAngle[0]<<std::endl;
                         std::cout<<"Y err"<<targetAngle[1]<<std::endl;
+                        rm::ControlData controldata;
+                        controldata.pitch_dev = targetAngle[1];
+                        controldata.yaw_dev = targetAngle[0];
+                        if(serial.tryControl(controldata,std::chrono::milliseconds(3)) == rm::Serial::OJBK)
+                        {
+                            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                            std::cout<<"success to sent"<<std::endl;
+                        }
+                        else
+                        {
+                            std::cout<<"not sent"<<std::endl;
+                        }
                     }
 
                     for (int i=0;i<armorVertex.size();i++)
                         cv::circle(v4l2Mat,cv::Point(armorVertex[i].x,armorVertex[i].y),10,CV_RGB(255,0,0),2);
                     //cv::drawContours(v4l2Mat,armorVertex,-1,cv::Scalar(255,0,0));
+
+                   
+
                 }
                 cv::imshow("test", v4l2Mat);
                 cv::waitKey(10);
