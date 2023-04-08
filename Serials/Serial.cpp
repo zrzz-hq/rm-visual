@@ -70,25 +70,24 @@ Serial::~Serial()
 
 int Serial::openPort()
 {
-    _serialFd = open("/dev/ttyTHS2", O_RDWR | O_NOCTTY | O_NONBLOCK);
+    _serialFd = open("/dev/serial/by-id/usb-STMicroelectronics_STM32_Virtual_ComPort_in_FS_Mode_2058395B5753-if00", O_RDWR | O_NOCTTY| O_NONBLOCK);
      if (_serialFd == -1)
     {        
         cout << "Open serial port failed." << endl;
-        return _errorCode = SYSTEM_ERROR;;
+        return _errorCode = SYSTEM_ERROR;
     }
 
     termios tOption;                                // 串口配置结构体
     tcgetattr(_serialFd, &tOption);                 //获取当前设置
-    cfmakeraw(&tOption);
-    cfsetispeed(&tOption, B460800);                 // 接收波特率
-    cfsetospeed(&tOption, B460800);                 // 发送波特率
-    tcsetattr(_serialFd, TCSANOW, &tOption);
+    // cfmakeraw(&tOption);
+    // cfsetispeed(&tOption, B115200);                 // 接收波特率
+    // cfsetospeed(&tOption, B115200);                 // 发送波特率
     tOption.c_cflag &= ~PARENB;
     tOption.c_cflag &= ~CSTOPB;
     tOption.c_cflag &= ~CSIZE;
     tOption.c_cflag |= CS8;
     tOption.c_cflag &= ~INPCK;
-    tOption.c_cflag |= (B460800 | CLOCAL | CREAD);  // 设置波特率，本地连接，接收使能
+    tOption.c_cflag |= (B115200 | CLOCAL | CREAD);  // 设置波特率，本地连接，接收使能
     tOption.c_cflag &= ~(INLCR | ICRNL);
     tOption.c_cflag &= ~(IXON);
     tOption.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
@@ -98,8 +97,12 @@ int Serial::openPort()
     tOption.c_iflag &= ~(IXON | IXOFF | IXANY);
     tOption.c_cc[VTIME] = 1;                        //只有设置为阻塞时这两个参数才有效
     tOption.c_cc[VMIN] = 1;
+    if(tcsetattr(_serialFd, TCSANOW, &tOption)!=0)
+    {
+        cout<<"Serial preparation failed."<<endl;
+        return _errorCode = SYSTEM_ERROR;
+    }
     tcflush(_serialFd, TCIOFLUSH);                  //TCIOFLUSH刷新输入、输出队列。
-
     cout << "Serial preparation complete." << endl;
     return _errorCode = OJBK;
 }

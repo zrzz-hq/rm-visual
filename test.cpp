@@ -41,7 +41,7 @@ int main()
 
     rm::Serial serial;
     serial.openPort();
-    serial.setDebug(false);
+    serial.setDebug(true);
     int self_color;
     while(serial.setup(self_color) != rm::Serial::OJBK)
     {

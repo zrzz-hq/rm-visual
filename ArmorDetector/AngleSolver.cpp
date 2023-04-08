@@ -357,7 +357,7 @@ double AngleSolver::getDistance()
 
 void AngleSolverParam::readFile(const int id)
 {
-	cv::FileStorage fsread("../config/angle_solver_params.xml", cv::FileStorage::READ);
+	cv::FileStorage fsread("/home/endurance/Desktop/visual/config/angle_solver_params.xml", cv::FileStorage::READ);
 	if(!fsread.isOpened())
 	{
 		std::cerr << "failed to open xml" << std::endl;
